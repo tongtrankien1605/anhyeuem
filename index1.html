@@ -1,0 +1,260 @@
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Falling 3D Text with Layers and Panning</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+            perspective: 1000px;
+            background-color: #000000; /* Đổi nền thành màu đen */
+        }
+        #scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.15s ease-out;
+        }
+        .falling-text {
+            position: absolute;
+            color: #ff69b4;
+            font-size: 20px;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0.9;
+            transform-style: preserve-3d;
+            text-shadow: 0 0 10px rgba(255, 105, 180, 0.8),
+                         0 0 20px rgba(255, 105, 180, 0.6),
+                         0 0 30px rgba(255, 20, 147, 0.4);
+            animation: fadeInOut 2s infinite alternate;
+        }
+        .heart, .rose {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0.8;
+            transform-style: preserve-3d;
+            animation: float 4s infinite ease-in-out;
+        }
+        .heart {
+            color: #ff1493;
+            font-size: 24px;
+            text-shadow: 0 0 5px #ff1493, 0 0 10px #ff1493;
+        }
+        .rose {
+            color: #ff4040;
+            font-size: 20px;
+            transform: rotate(45deg);
+            text-shadow: 0 0 5px #ff4040, 0 0 10px #ff4040;
+        }
+        @keyframes fadeInOut {
+            from { opacity: 0.9; }
+            to { opacity: 0.6; }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div id="scene"></div>
+    <audio id="backgroundMusic" autoplay loop>
+        <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    <script>
+        const texts = [
+            "LUÔN LUÔN BÊN NHAU",
+            "LOVE U SO MUCH",
+            "3 YEAR ANNIVERSARY",
+            "♥VÕ CÔNG NHẬT♥"
+        ];
+
+        const scene = document.getElementById("scene");
+        let rotateX = 0, rotateY = 0;
+        let targetRotateX = 0, targetRotateY = 0;
+        const maxRotate = 30;
+
+        document.addEventListener("mousemove", (e) => {
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            targetRotateY = ((e.clientX - centerX) / centerX) * maxRotate;
+            targetRotateX = ((e.clientY - centerY) / centerY) * maxRotate;
+        });
+
+        let touchStartX = 0, touchStartY = 0;
+        document.addEventListener("touchstart", (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            const centerX = window.innerWidth / 2;
+            const centerY = window.innerHeight / 2;
+            const touchX = e.touches[0].clientX;
+            const touchY = e.touches[0].clientY;
+            targetRotateY = ((touchX - centerX) / centerX) * maxRotate;
+            targetRotateX = ((touchY - centerY) / centerY) * maxRotate;
+        });
+
+        function updateRotation() {
+            rotateX += (targetRotateX - rotateX) * 0.1;
+            rotateY += (targetRotateY - rotateY) * 0.1;
+            scene.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            requestAnimationFrame(updateRotation);
+        }
+        updateRotation();
+
+        function createFallingText(initial = false, initialY = -50) {
+            const text = document.createElement("div");
+            text.className = "falling-text";
+            text.innerText = texts[Math.floor(Math.random() * texts.length)];
+            
+            const startX = Math.random() * window.innerWidth;
+            const zLayer = Math.random() * 400 - 200;
+            text.style.left = startX + "px";
+            text.style.top = initial ? (Math.random() * window.innerHeight) + "px" : "-50px";
+            text.style.transform = `translateZ(${zLayer}px)`;
+            text.style.color = `hsl(${Math.random() * 360}, 80%, 70%)`;
+            text.style.fontSize = `${Math.random() * 20 + 15}px`;
+
+            scene.appendChild(text);
+
+            let posY = initial ? parseFloat(text.style.top) : -50;
+            const speed = Math.random() * 2 + 1;
+
+            function animate() {
+                posY += speed;
+                text.style.top = posY + "px";
+
+                if (posY > window.innerHeight + 50) {
+                    text.remove();
+                } else {
+                    requestAnimationFrame(animate);
+                }
+            }
+            animate();
+        }
+
+        function createHeart(initial = false, initialY = -50) {
+            const heart = document.createElement("div");
+            heart.className = "heart";
+            heart.innerText = "♥";
+            
+            const startX = Math.random() * window.innerWidth;
+            const zLayer = Math.random() * 400 - 200;
+            heart.style.left = startX + "px";
+            heart.style.top = initial ? (Math.random() * window.innerHeight) + "px" : "-50px";
+            heart.style.transform = `translateZ(${zLayer}px)`;
+
+            scene.appendChild(heart);
+
+            let posY = initial ? parseFloat(heart.style.top) : -50;
+            const speed = Math.random() * 1.5 + 1;
+
+            function animateHeart() {
+                posY += speed;
+                heart.style.top = posY + "px";
+
+                if (posY > window.innerHeight + 50) {
+                    heart.remove();
+                } else {
+                    requestAnimationFrame(animateHeart);
+                }
+            }
+            animateHeart();
+        }
+
+        function createRose(initial = false, initialY = -50) {
+            const rose = document.createElement("div");
+            rose.className = "rose";
+            rose.innerText = "♥";
+            
+            const startX = Math.random() * window.innerWidth;
+            const zLayer = Math.random() * 400 - 200;
+            rose.style.left = startX + "px";
+            rose.style.top = initial ? (Math.random() * window.innerHeight) + "px" : "-50px";
+            rose.style.transform = `translateZ(${zLayer}px) rotate(${Math.random() * 360}deg)`;
+
+            scene.appendChild(rose);
+
+            let posY = initial ? parseFloat(rose.style.top) : -50;
+            const speed = Math.random() * 1.5 + 1;
+
+            function animateRose() {
+                posY += speed;
+                rose.style.top = posY + "px";
+
+                if (posY > window.innerHeight + 50) {
+                    rose.remove();
+                } else {
+                    requestAnimationFrame(animateRose);
+                }
+            }
+            animateRose();
+        }
+
+        // Initialize with a higher density of elements
+        for (let i = 0; i < 30; i++) {
+            createFallingText(true);
+        }
+        for (let i = 0; i < 15; i++) {
+            createHeart(true);
+        }
+        for (let i = 0; i < 10; i++) {
+            createRose(true);
+        }
+
+        // Increase frequency of new elements
+        setInterval(createFallingText, 150);
+        setInterval(createHeart, 200);
+        setInterval(createRose, 300);
+    </script>
+</body>
+</html>
