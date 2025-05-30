@@ -1,4 +1,43 @@
-<!DOCTYPE html>
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -74,75 +113,66 @@
 </head>
 <body>
     <div id="scene"></div>
-
-    <!-- Thẻ audio với raw link từ GitHub -->
+    
     <audio id="backgroundMusic" loop>
-        <source src="https://raw.githubusercontent.com/tongtrankien1605/anhyeuem/main/music/ngay-hanh-phuc.mp3" type="audio/mpeg">
-        Your browser does not support the audio element.
-    </audio>
+    <source src="https://raw.githubusercontent.com/tongtrankien1605/anhyeuem/main/music/ngay-hanh-phuc.mp3" type="audio/mpeg">
+    Your browser does not support the audio element.
+</audio>
+<button onclick="playMusic()">Phát nhạc</button>
+<button onclick="pauseMusic()">Tạm dừng</button>
+
+<script>
+    const audio = document.getElementById("backgroundMusic");
+    function playMusic() {
+        audio.play().catch(e => console.error("Lỗi phát nhạc:", e));
+    }
+    function pauseMusic() {
+        audio.pause();
+    }
+</script>
+
+
 
     <script>
-        // Giữ nguyên mã XLSX (dù không liên quan đến nhạc)
         var gk_isXlsx = false;
         var gk_xlsxFileLookup = {};
         var gk_fileData = {};
         function filledCell(cell) {
-            return cell !== '' && cell != null;
+          return cell !== '' && cell != null;
         }
         function loadFileData(filename) {
-            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-                try {
-                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
-                    var firstSheetName = workbook.SheetNames[0];
-                    var worksheet = workbook.Sheets[firstSheetName];
-                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
-                    var filteredData = jsonData.filter(row => row.some(filledCell));
-                    var headerRowIndex = filteredData.findIndex((row, index) =>
-                        row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
-                    );
-                    if (headerRowIndex === -1 || headerRowIndex > 25) {
-                        headerRowIndex = 0;
-                    }
-                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
-                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                    return csv;
-                } catch (e) {
-                    console.error(e);
-                    return "";
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
                 }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
             }
-            return gk_fileData[filename] || "";
+        }
+        return gk_fileData[filename] || "";
         }
 
-        // Phần phát nhạc khi chạm vào màn hình
-        const audio = document.getElementById("backgroundMusic");
-        let hasPlayed = false; // Biến kiểm tra xem nhạc đã phát chưa
-
-        // Thêm sự kiện touchstart để phát nhạc khi chạm
-        document.addEventListener("touchstart", () => {
-            if (!hasPlayed) { // Chỉ phát lần đầu tiên khi chạm
-                audio.play().then(() => {
-                    hasPlayed = true; // Đánh dấu nhạc đã phát
-                    console.log("Nhạc đã phát khi chạm vào màn hình!");
-                }).catch(e => {
-                    console.error("Lỗi phát nhạc:", e);
-                });
-            }
-        });
-
-        // Thêm sự kiện click để hỗ trợ trên máy tính (tuỳ chọn)
-        document.addEventListener("click", () => {
-            if (!hasPlayed) { // Chỉ phát lần đầu tiên khi click
-                audio.play().then(() => {
-                    hasPlayed = true;
-                    console.log("Nhạc đã phát khi click!");
-                }).catch(e => {
-                    console.error("Lỗi phát nhạc:", e);
-                });
-            }
-        });
-
-        // Giữ nguyên phần mã còn lại
         const texts = [
             "♥  Tống Trần Kiên ♥",
             "Thương em",
@@ -159,8 +189,9 @@
         let rotateX = 0, rotateY = 0;
         let targetRotateX = 0, targetRotateY = 0;
         const maxRotate = 30;
-        let isDragging = false;
+        let isDragging = false; // Track if mouse or touch is active
 
+        // Desktop mouse events
         document.addEventListener("mousedown", () => {
             isDragging = true;
         });
@@ -176,10 +207,12 @@
 
         document.addEventListener("mouseup", () => {
             isDragging = false;
+            // Smoothly return to original position
             targetRotateX = 0;
             targetRotateY = 0;
         });
 
+        // Mobile touch events
         let touchStartX = 0, touchStartY = 0;
         document.addEventListener("touchstart", (e) => {
             isDragging = true;
@@ -192,10 +225,12 @@
             if (isDragging) {
                 const touchMoveX = e.touches[0].clientX;
                 const touchMoveY = e.touches[0].clientY;
+
                 const deltaX = (touchMoveX - touchStartX) / window.innerWidth * maxRotate * 2;
                 const deltaY = (touchMoveY - touchStartY) / window.innerHeight * maxRotate * 2;
+
                 targetRotateY = deltaX;
-                targetRotateX = -deltaY;
+                targetRotateX = -deltaY; // Negative for correct up/down direction
             }
         });
 
@@ -203,6 +238,7 @@
             isDragging = false;
             touchStartX = 0;
             touchStartY = 0;
+            // Smoothly return to original position
             targetRotateX = 0;
             targetRotateY = 0;
         });
@@ -219,6 +255,7 @@
             const text = document.createElement("div");
             text.className = "falling-text";
             text.innerText = texts[Math.floor(Math.random() * texts.length)];
+            
             const startX = Math.random() * window.innerWidth;
             const zLayer = Math.random() * 200 - 100;
             text.style.left = startX + "px";
@@ -226,12 +263,16 @@
             text.style.transform = `translateZ(${zLayer}px)`;
             text.style.color = `hsl(${Math.random() * 360}, 80%, 70%)`;
             text.style.fontSize = `${Math.random() * 2 + 2}vw`;
+
             scene.appendChild(text);
+
             let posY = initial ? parseFloat(text.style.top) : -50;
             const speed = Math.random() * 1.5 + 1;
+
             function animate() {
                 posY += speed;
                 text.style.top = posY + "px";
+
                 if (posY > window.innerHeight + 50) {
                     text.remove();
                 } else {
@@ -245,17 +286,22 @@
             const heart = document.createElement("div");
             heart.className = "heart";
             heart.innerText = "♥";
+            
             const startX = Math.random() * window.innerWidth;
             const zLayer = Math.random() * 200 - 100;
             heart.style.left = startX + "px";
             heart.style.top = initial ? (Math.random() * window.innerHeight) + "px" : "-50px";
             heart.style.transform = `translateZ(${zLayer}px)`;
+
             scene.appendChild(heart);
+
             let posY = initial ? parseFloat(heart.style.top) : -50;
             const speed = Math.random() * 1 + 0.5;
+
             function animateHeart() {
                 posY += speed;
                 heart.style.top = posY + "px";
+
                 if (posY > window.innerHeight + 50) {
                     heart.remove();
                 } else {
@@ -269,17 +315,22 @@
             const rose = document.createElement("div");
             rose.className = "rose";
             rose.innerText = "♥";
+            
             const startX = Math.random() * window.innerWidth;
             const zLayer = Math.random() * 200 - 100;
             rose.style.left = startX + "px";
             rose.style.top = initial ? (Math.random() * window.innerHeight) + "px" : "-50px";
             rose.style.transform = `translateZ(${zLayer}px) rotate(${Math.random() * 360}deg)`;
+
             scene.appendChild(rose);
+
             let posY = initial ? parseFloat(rose.style.top) : -50;
             const speed = Math.random() * 1 + 0.5;
+
             function animateRose() {
                 posY += speed;
                 rose.style.top = posY + "px";
+
                 if (posY > window.innerHeight + 50) {
                     rose.remove();
                 } else {
@@ -289,6 +340,7 @@
             animateRose();
         }
 
+        // Giảm số lượng phần tử ban đầu để mật độ thưa hơn
         for (let i = 0; i < 10; i++) {
             createFallingText(true);
         }
@@ -299,6 +351,7 @@
             createRose(true);
         }
 
+        // Tăng thời gian tạo mới để giảm mật độ
         setInterval(createFallingText, 400);
         setInterval(createHeart, 600);
         setInterval(createRose, 800);
