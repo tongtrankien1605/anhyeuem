@@ -226,7 +226,7 @@
             text.style.fontSize = `${Math.random() * 2 + 2}vw`;
             scene.appendChild(text);
             let posY = -50;
-            const speed = Math.random() * 1.5 + 1.5; // Tăng tốc độ tối thiểu
+            const speed = Math.random() * 1.5 + 1; // Tăng tốc độ tối thiểu
             function animate() {
                 posY += speed;
                 text.style.top = posY + "px";
@@ -250,7 +250,7 @@
             heart.style.transform = `translateZ(${zLayer}px)`;
             scene.appendChild(heart);
             let posY = -50;
-            const speed = Math.random() * 1 + 1; // Tăng tốc độ tối thiểu
+            const speed = Math.random() * 1 + 0.5; // Tăng tốc độ tối thiểu
             function animateHeart() {
                 posY += speed;
                 heart.style.top = posY + "px";
@@ -274,7 +274,7 @@
             rose.style.transform = `translateZ(${zLayer}px) rotate(${Math.random() * 360}deg)`;
             scene.appendChild(rose);
             let posY = -50;
-            const speed = Math.random() * 1 + 1; // Tăng tốc độ tối thiểu
+            const speed = Math.random() * 1 + 0.5; // Tăng tốc độ tối thiểu
             function animateRose() {
                 posY += speed;
                 rose.style.top = posY + "px";
@@ -300,20 +300,20 @@
 
         // Tạo phần tử định kỳ với giới hạn số lượng
         setInterval(() => {
-            if (scene.childElementCount < 40) {
+            if (scene.childElementCount < 50) {
                 createFallingText();
             }
-        }, 600); // Tăng từ 400ms lên 600ms
+        }, 500); // Tăng từ 400ms lên 600ms
         setInterval(() => {
-            if (scene.childElementCount < 40) {
+            if (scene.childElementCount < 50) {
                 createHeart();
             }
-        }, 800); // Tăng từ 600ms lên 800ms
+        }, 700); // Tăng từ 600ms lên 800ms
         setInterval(() => {
-            if (scene.childElementCount < 40) {
+            if (scene.childElementCount < 50) {
                 createRose();
             }
-        }, 1000); // Tăng từ 800ms lên 1000ms
+        }, 900); // Tăng từ 800ms lên 1000ms
     </script>
 </body>
 </html>
