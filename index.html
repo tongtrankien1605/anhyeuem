@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Falling 3D Text with Layers and Panning</title>
+    <title>Tống Trần Kiên</title>
     <style>
         body {
             margin: 0;
@@ -82,7 +82,7 @@
     </audio>
 
     <script>
-        // Giữ nguyên mã XLSX (dù không liên quan đến nhạc)
+        // Phần xử lý file XLSX (giữ nguyên, dù không dùng)
         var gk_isXlsx = false;
         var gk_xlsxFileLookup = {};
         var gk_fileData = {};
@@ -114,15 +114,14 @@
             return gk_fileData[filename] || "";
         }
 
-        // Phần phát nhạc khi chạm vào màn hình
+        // Phần phát nhạc
         const audio = document.getElementById("backgroundMusic");
-        let hasPlayed = false; // Biến kiểm tra xem nhạc đã phát chưa
+        let hasPlayed = false;
 
-        // Thêm sự kiện touchstart để phát nhạc khi chạm
         document.addEventListener("touchstart", () => {
-            if (!hasPlayed) { // Chỉ phát lần đầu tiên khi chạm
+            if (!hasPlayed) {
                 audio.play().then(() => {
-                    hasPlayed = true; // Đánh dấu nhạc đã phát
+                    hasPlayed = true;
                     console.log("Nhạc đã phát khi chạm vào màn hình!");
                 }).catch(e => {
                     console.error("Lỗi phát nhạc:", e);
@@ -130,9 +129,8 @@
             }
         });
 
-        // Thêm sự kiện click để hỗ trợ trên máy tính (tuỳ chọn)
         document.addEventListener("click", () => {
-            if (!hasPlayed) { // Chỉ phát lần đầu tiên khi click
+            if (!hasPlayed) {
                 audio.play().then(() => {
                     hasPlayed = true;
                     console.log("Nhạc đã phát khi click!");
@@ -142,7 +140,7 @@
             }
         });
 
-        // Giữ nguyên phần mã còn lại
+        // Danh sách văn bản
         const texts = [
             "♥  Tống Trần Kiên ♥",
             "Thương em",
@@ -153,6 +151,13 @@
             "Cùng nhau đi khắp thế gian",
             "Tình yêu là mãi mãi",
             "Em là tất cả của anh",
+            "Chúng ta sẽ không bao giờ chia tay",
+            "Mỗi ngày bên em là một ngày hạnh phúc",
+            "Em là ánh sáng trong cuộc đời anh",
+            "Tình yêu của chúng ta là vô tận",
+            "Em là lý do anh cười mỗi ngày",
+            "Biết ông Tiên không ?",
+            "Tiên sư bố chúng mày",
         ];
 
         const scene = document.getElementById("scene");
@@ -215,24 +220,24 @@
         }
         updateRotation();
 
-        function createFallingText(initial = false, initialY = -50) {
+        function createFallingText() {
             const text = document.createElement("div");
             text.className = "falling-text";
             text.innerText = texts[Math.floor(Math.random() * texts.length)];
             const startX = Math.random() * window.innerWidth;
             const zLayer = Math.random() * 200 - 100;
             text.style.left = startX + "px";
-            text.style.top = initial ? (Math.random() * window.innerHeight) + "px" : "-50px";
+            text.style.top = "-50px";
             text.style.transform = `translateZ(${zLayer}px)`;
             text.style.color = `hsl(${Math.random() * 360}, 80%, 70%)`;
             text.style.fontSize = `${Math.random() * 2 + 2}vw`;
             scene.appendChild(text);
-            let posY = initial ? parseFloat(text.style.top) : -50;
-            const speed = Math.random() * 1.5 + 1;
+            let posY = -50;
+            const speed = Math.random() * 1.5 + 1; // Tăng tốc độ tối thiểu
             function animate() {
                 posY += speed;
                 text.style.top = posY + "px";
-                if (posY > window.innerHeight + 50) {
+                if (posY > document.documentElement.clientHeight + 50) {
                     text.remove();
                 } else {
                     requestAnimationFrame(animate);
@@ -241,22 +246,22 @@
             animate();
         }
 
-        function createHeart(initial = false, initialY = -50) {
+        function createHeart() {
             const heart = document.createElement("div");
             heart.className = "heart";
             heart.innerText = "♥";
             const startX = Math.random() * window.innerWidth;
             const zLayer = Math.random() * 200 - 100;
             heart.style.left = startX + "px";
-            heart.style.top = initial ? (Math.random() * window.innerHeight) + "px" : "-50px";
+            heart.style.top = "-50px";
             heart.style.transform = `translateZ(${zLayer}px)`;
             scene.appendChild(heart);
-            let posY = initial ? parseFloat(heart.style.top) : -50;
-            const speed = Math.random() * 1 + 0.5;
+            let posY = -50;
+            const speed = Math.random() * 1 + 0.5; // Tăng tốc độ tối thiểu
             function animateHeart() {
                 posY += speed;
                 heart.style.top = posY + "px";
-                if (posY > window.innerHeight + 50) {
+                if (posY > document.documentElement.clientHeight + 50) {
                     heart.remove();
                 } else {
                     requestAnimationFrame(animateHeart);
@@ -265,22 +270,22 @@
             animateHeart();
         }
 
-        function createRose(initial = false, initialY = -50) {
+        function createRose() {
             const rose = document.createElement("div");
             rose.className = "rose";
             rose.innerText = "♥";
             const startX = Math.random() * window.innerWidth;
             const zLayer = Math.random() * 200 - 100;
             rose.style.left = startX + "px";
-            rose.style.top = initial ? (Math.random() * window.innerHeight) + "px" : "-50px";
+            rose.style.top = "-50px";
             rose.style.transform = `translateZ(${zLayer}px) rotate(${Math.random() * 360}deg)`;
             scene.appendChild(rose);
-            let posY = initial ? parseFloat(rose.style.top) : -50;
-            const speed = Math.random() * 1 + 0.5;
+            let posY = -50;
+            const speed = Math.random() * 1 + 0.5; // Tăng tốc độ tối thiểu
             function animateRose() {
                 posY += speed;
                 rose.style.top = posY + "px";
-                if (posY > window.innerHeight + 50) {
+                if (posY > document.documentElement.clientHeight + 50) {
                     rose.remove();
                 } else {
                     requestAnimationFrame(animateRose);
@@ -289,19 +294,33 @@
             animateRose();
         }
 
+        // Khởi tạo phần tử ban đầu
         for (let i = 0; i < 10; i++) {
-            createFallingText(true);
+            createFallingText();
         }
         for (let i = 0; i < 5; i++) {
-            createHeart(true);
+            createHeart();
         }
         for (let i = 0; i < 3; i++) {
-            createRose(true);
+            createRose();
         }
 
-        setInterval(createFallingText, 400);
-        setInterval(createHeart, 600);
-        setInterval(createRose, 800);
+        // Tạo phần tử định kỳ với giới hạn số lượng
+        setInterval(() => {
+            if (scene.childElementCount < 80) {
+                createFallingText();
+            }
+        }, 400); // Tăng từ 400ms lên 600ms
+        setInterval(() => {
+            if (scene.childElementCount < 80) {
+                createHeart();
+            }
+        }, 600); // Tăng từ 600ms lên 800ms
+        setInterval(() => {
+            if (scene.childElementCount < 80) {
+                createRose();
+            }
+        }, 800); // Tăng từ 800ms lên 1000ms
     </script>
 </body>
 </html>
