@@ -249,10 +249,10 @@
 
                 setTimeout(() => {
                     text.remove();
-                }, 18000);
+                }, 20000);
 
                 let posY = initial ? parseFloat(text.style.top) : -50;
-                const speed = Math.random() * 1.5 + 1;
+                const speed = Math.random() * 1.5 + 1.5;
                 function animate() {
                     posY += speed;
                     text.style.top = posY + "px";
@@ -279,10 +279,10 @@
 
                 setTimeout(() => {
                     heart.remove();
-                }, 18000);
+                }, 25000);
 
                 let posY = initial ? parseFloat(heart.style.top) : -50;
-                const speed = Math.random() * 1 + 0.5;
+                const speed = Math.random() * 1 + 1;
                 function animateHeart() {
                     posY += speed;
                     heart.style.top = posY + "px";
@@ -309,10 +309,10 @@
 
                 setTimeout(() => {
                     rose.remove();
-                }, 18000);
+                }, 25000);
 
                 let posY = initial ? parseFloat(rose.style.top) : -50;
-                const speed = Math.random() * 1 + 0.5;
+                const speed = Math.random() * 1 + 1;
                 function animateRose() {
                     posY += speed;
                     rose.style.top = posY + "px";
