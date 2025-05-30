@@ -1,343 +1,319 @@
 <!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Falling 3D Text with Layers and Panning</title>
-        <style>
-            body {
-                margin: 0;
-                padding: 0;
-                overflow: hidden;
-                height: 100vh;
-                font-family: "Arial", sans-serif;
-                perspective: 500px;
-                background-color: #000000;
-            }
-            #scene {
-                position: absolute;
-                width: 100%;
-                height: 100%;
-                transform-style: preserve-3d;
-                transition: transform 0.15s ease-out;
-            }
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tống Trần Kiên</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            height: 100vh;
+            font-family: 'Arial', sans-serif;
+            perspective: 500px;
+            background-color: #000000;
+        }
+        #scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+            transition: transform 0.15s ease-out;
+        }
+        .falling-text {
+            position: absolute;
+            color: #ff69b4;
+            font-size: 3vw;
+            white-space: nowrap;
+            pointer-events: none;
+            opacity: 0.9;
+            transform-style: preserve-3d;
+            text-shadow: 0 0 5px rgba(255, 105, 180, 0.8),
+                         0 0 10px rgba(255, 105, 180, 0.6);
+            animation: fadeInOut 2s infinite alternate;
+        }
+        .heart, .rose {
+            position: absolute;
+            pointer-events: none;
+            opacity: 0.8;
+            transform-style: preserve-3d;
+            animation: float 4s infinite ease-in-out;
+        }
+        .heart {
+            color: #ff1493;
+            font-size: 3vw;
+            text-shadow: 0 0 3px #ff1493, 0 0 5px #ff1493;
+        }
+        .rose {
+            color: #ff4040;
+            font-size: 2.5vw;
+            transform: rotate(45deg);
+            text-shadow: 0 0 3px #ff4040, 0 0 5px #ff4040;
+        }
+        @keyframes fadeInOut {
+            from { opacity: 0.9; }
+            to { opacity: 0.6; }
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
+        }
+        @media (max-width: 768px) {
             .falling-text {
-                position: absolute;
-                color: #ff69b4;
-                font-size: 3vw;
-                white-space: nowrap;
-                pointer-events: none;
-                opacity: 0.9;
-                transform-style: preserve-3d;
-                text-shadow: 0 0 5px rgba(255, 105, 180, 0.8), 0 0 10px rgba(255, 105, 180, 0.6);
-                animation: fadeInOut 2s infinite alternate;
-            }
-            .heart,
-            .rose {
-                position: absolute;
-                pointer-events: none;
-                opacity: 0.8;
-                transform-style: preserve-3d;
-                animation: float 4s infinite ease-in-out;
+                font-size: 4vw;
             }
             .heart {
-                color: #ff1493;
-                font-size: 3vw;
-                text-shadow: 0 0 3px #ff1493, 0 0 5px #ff1493;
+                font-size: 4vw;
             }
             .rose {
-                color: #ff4040;
-                font-size: 2.5vw;
-                transform: rotate(45deg);
-                text-shadow: 0 0 3px #ff4040, 0 0 5px #ff4040;
+                font-size: 3.5vw;
             }
-            @keyframes fadeInOut {
-                from {
-                    opacity: 0.9;
-                }
-                to {
-                    opacity: 0.6;
-                }
-            }
-            @keyframes float {
-                0%,
-                100% {
-                    transform: translateY(0);
-                }
-                50% {
-                    transform: translateY(-5px);
-                }
-            }
-            @media (max-width: 768px) {
-                .falling-text {
-                    font-size: 4vw;
-                }
-                .heart {
-                    font-size: 4vw;
-                }
-                .rose {
-                    font-size: 3.5vw;
-                }
-            }
-        </style>
-    </head>
-    <body>
-        <div id="scene"></div>
+        }
+    </style>
+</head>
+<body>
+    <div id="scene"></div>
 
-        <!-- Thẻ audio với raw link từ GitHub -->
-        <audio id="backgroundMusic" loop>
-            <source src="https://raw.githubusercontent.com/tongtrankien1605/anhyeuem/main/music/ngay-hanh-phuc.mp3" type="audio/mpeg" />
-            Your browser does not support the audio element.
-        </audio>
+    <!-- Thẻ audio với raw link từ GitHub -->
+    <audio id="backgroundMusic" loop>
+        <source src="https://raw.githubusercontent.com/tongtrankien1605/anhyeuem/main/music/ngay-hanh-phuc.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
 
-        <script>
-            // Giữ nguyên mã XLSX (dù không liên quan đến nhạc)
-            var gk_isXlsx = false;
-            var gk_xlsxFileLookup = {};
-            var gk_fileData = {};
-            function filledCell(cell) {
-                return cell !== "" && cell != null;
-            }
-            function loadFileData(filename) {
-                if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
-                    try {
-                        var workbook = XLSX.read(gk_fileData[filename], { type: "base64" });
-                        var firstSheetName = workbook.SheetNames[0];
-                        var worksheet = workbook.Sheets[firstSheetName];
-                        var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: "" });
-                        var filteredData = jsonData.filter((row) => row.some(filledCell));
-                        var headerRowIndex = filteredData.findIndex((row, index) => row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length);
-                        if (headerRowIndex === -1 || headerRowIndex > 25) {
-                            headerRowIndex = 0;
-                        }
-                        var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
-                        csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
-                        return csv;
-                    } catch (e) {
-                        console.error(e);
-                        return "";
+    <script>
+        // Phần xử lý file XLSX (giữ nguyên, dù không dùng)
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+            return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+            if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+                try {
+                    var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                    var firstSheetName = workbook.SheetNames[0];
+                    var worksheet = workbook.Sheets[firstSheetName];
+                    var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                    var filteredData = jsonData.filter(row => row.some(filledCell));
+                    var headerRowIndex = filteredData.findIndex((row, index) =>
+                        row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                    );
+                    if (headerRowIndex === -1 || headerRowIndex > 25) {
+                        headerRowIndex = 0;
                     }
+                    var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex));
+                    csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                    return csv;
+                } catch (e) {
+                    console.error(e);
+                    return "";
                 }
-                return gk_fileData[filename] || "";
             }
+            return gk_fileData[filename] || "";
+        }
 
-            // Phần phát nhạc khi chạm vào màn hình
-            const audio = document.getElementById("backgroundMusic");
-            let hasPlayed = false; // Biến kiểm tra xem nhạc đã phát chưa
+        // Phần phát nhạc
+        const audio = document.getElementById("backgroundMusic");
+        let hasPlayed = false;
 
-            // Thêm sự kiện touchstart để phát nhạc khi chạm
-            document.addEventListener("touchstart", () => {
-                if (!hasPlayed) {
-                    // Chỉ phát lần đầu tiên khi chạm
-                    audio
-                        .play()
-                        .then(() => {
-                            hasPlayed = true; // Đánh dấu nhạc đã phát
-                            console.log("Nhạc đã phát khi chạm vào màn hình!");
-                        })
-                        .catch((e) => {
-                            console.error("Lỗi phát nhạc:", e);
-                        });
-                }
-            });
-
-            // Thêm sự kiện click để hỗ trợ trên máy tính (tuỳ chọn)
-            document.addEventListener("click", () => {
-                if (!hasPlayed) {
-                    // Chỉ phát lần đầu tiên khi click
-                    audio
-                        .play()
-                        .then(() => {
-                            hasPlayed = true;
-                            console.log("Nhạc đã phát khi click!");
-                        })
-                        .catch((e) => {
-                            console.error("Lỗi phát nhạc:", e);
-                        });
-                }
-            });
-
-            // Giữ nguyên phần mã còn lại
-            const texts = [
-                "♥  Tống Trần Kiên ♥",
-                "Thương em",
-                "Mãi mãi bên nhau bạn nhớ",
-                "Em là bà nội của tui",
-                "LOVE U SO MUCH",
-                "Tao là bố chúng mày",
-                "Cùng nhau đi khắp thế gian",
-                "Tình yêu là mãi mãi",
-                "Em là tất cả của anh",
-            ];
-
-            const scene = document.getElementById("scene");
-            let rotateX = 0,
-                rotateY = 0;
-            let targetRotateX = 0,
-                targetRotateY = 0;
-            const maxRotate = 30;
-            let isDragging = false;
-
-            document.addEventListener("mousedown", () => {
-                isDragging = true;
-            });
-
-            document.addEventListener("mousemove", (e) => {
-                if (isDragging) {
-                    const centerX = window.innerWidth / 2;
-                    const centerY = window.innerHeight / 2;
-                    targetRotateY = ((e.clientX - centerX) / centerX) * maxRotate;
-                    targetRotateX = ((e.clientY - centerY) / centerY) * maxRotate;
-                }
-            });
-
-            document.addEventListener("mouseup", () => {
-                isDragging = false;
-                targetRotateX = 0;
-                targetRotateY = 0;
-            });
-
-            let touchStartX = 0,
-                touchStartY = 0;
-            document.addEventListener("touchstart", (e) => {
-                isDragging = true;
-                touchStartX = e.touches[0].clientX;
-                touchStartY = e.touches[0].clientY;
-            });
-
-            document.addEventListener("touchmove", (e) => {
-                e.preventDefault();
-                if (isDragging) {
-                    const touchMoveX = e.touches[0].clientX;
-                    const touchMoveY = e.touches[0].clientY;
-                    const deltaX = ((touchMoveX - touchStartX) / window.innerWidth) * maxRotate * 2;
-                    const deltaY = ((touchMoveY - touchStartY) / window.innerHeight) * maxRotate * 2;
-                    targetRotateY = deltaX;
-                    targetRotateX = -deltaY;
-                }
-            });
-
-            document.addEventListener("touchend", () => {
-                isDragging = false;
-                touchStartX = 0;
-                touchStartY = 0;
-                targetRotateX = 0;
-                targetRotateY = 0;
-            });
-
-            function updateRotation() {
-                rotateX += (targetRotateX - rotateX) * 0.1;
-                rotateY += (targetRotateY - rotateY) * 0.1;
-                scene.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
-                requestAnimationFrame(updateRotation);
+        document.addEventListener("touchstart", () => {
+            if (!hasPlayed) {
+                audio.play().then(() => {
+                    hasPlayed = true;
+                    console.log("Nhạc đã phát khi chạm vào màn hình!");
+                }).catch(e => {
+                    console.error("Lỗi phát nhạc:", e);
+                });
             }
-            updateRotation();
+        });
 
-            function createFallingText(initial = false, initialY = -50) {
-                const text = document.createElement("div");
-                text.className = "falling-text";
-                text.innerText = texts[Math.floor(Math.random() * texts.length)];
-                const startX = Math.random() * window.innerWidth;
-                const zLayer = Math.random() * 200 - 100;
-                text.style.left = startX + "px";
-                text.style.top = initial ? Math.random() * window.innerHeight + "px" : "-50px";
-                text.style.transform = `translateZ(${zLayer}px)`;
-                text.style.color = `hsl(${Math.random() * 360}, 80%, 70%)`;
-                text.style.fontSize = `${Math.random() * 2 + 2}vw`;
+        document.addEventListener("click", () => {
+            if (!hasPlayed) {
+                audio.play().then(() => {
+                    hasPlayed = true;
+                    console.log("Nhạc đã phát khi click!");
+                }).catch(e => {
+                    console.error("Lỗi phát nhạc:", e);
+                });
+            }
+        });
 
-                scene.appendChild(text);
+        // Danh sách văn bản
+        const texts = [
+            "♥  Tống Trần Kiên ♥",
+            "Thương em",
+            "Mãi mãi bên nhau bạn nhớ",
+            "Em là bà nội của tui",
+            "LOVE U SO MUCH",
+            "Tao là bố chúng mày",
+            "Cùng nhau đi khắp thế gian",
+            "Tình yêu là mãi mãi",
+            "Em là tất cả của anh",
+        ];
 
-                setTimeout(() => {
+        const scene = document.getElementById("scene");
+        let rotateX = 0, rotateY = 0;
+        let targetRotateX = 0, targetRotateY = 0;
+        const maxRotate = 30;
+        let isDragging = false;
+
+        document.addEventListener("mousedown", () => {
+            isDragging = true;
+        });
+
+        document.addEventListener("mousemove", (e) => {
+            if (isDragging) {
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2;
+                targetRotateY = ((e.clientX - centerX) / centerX) * maxRotate;
+                targetRotateX = ((e.clientY - centerY) / centerY) * maxRotate;
+            }
+        });
+
+        document.addEventListener("mouseup", () => {
+            isDragging = false;
+            targetRotateX = 0;
+            targetRotateY = 0;
+        });
+
+        let touchStartX = 0, touchStartY = 0;
+        document.addEventListener("touchstart", (e) => {
+            isDragging = true;
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        document.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            if (isDragging) {
+                const touchMoveX = e.touches[0].clientX;
+                const touchMoveY = e.touches[0].clientY;
+                const deltaX = (touchMoveX - touchStartX) / window.innerWidth * maxRotate * 2;
+                const deltaY = (touchMoveY - touchStartY) / window.innerHeight * maxRotate * 2;
+                targetRotateY = deltaX;
+                targetRotateX = -deltaY;
+            }
+        });
+
+        document.addEventListener("touchend", () => {
+            isDragging = false;
+            touchStartX = 0;
+            touchStartY = 0;
+            targetRotateX = 0;
+            targetRotateY = 0;
+        });
+
+        function updateRotation() {
+            rotateX += (targetRotateX - rotateX) * 0.1;
+            rotateY += (targetRotateY - rotateY) * 0.1;
+            scene.style.transform = `rotateX(${rotateX}deg) rotateY(${rotateY}deg)`;
+            requestAnimationFrame(updateRotation);
+        }
+        updateRotation();
+
+        function createFallingText() {
+            const text = document.createElement("div");
+            text.className = "falling-text";
+            text.innerText = texts[Math.floor(Math.random() * texts.length)];
+            const startX = Math.random() * window.innerWidth;
+            const zLayer = Math.random() * 200 - 100;
+            text.style.left = startX + "px";
+            text.style.top = "-50px";
+            text.style.transform = `translateZ(${zLayer}px)`;
+            text.style.color = `hsl(${Math.random() * 360}, 80%, 70%)`;
+            text.style.fontSize = `${Math.random() * 2 + 2}vw`;
+            scene.appendChild(text);
+            let posY = -50;
+            const speed = Math.random() * 1.5 + 1.5; // Tăng tốc độ tối thiểu
+            function animate() {
+                posY += speed;
+                text.style.top = posY + "px";
+                if (posY > document.documentElement.clientHeight + 50) {
                     text.remove();
-                }, 20000);
-
-                let posY = initial ? parseFloat(text.style.top) : -50;
-                const speed = Math.random() * 1.5 + 1.5;
-                function animate() {
-                    posY += speed;
-                    text.style.top = posY + "px";
-                    if (posY > window.innerHeight + 50) {
-                        text.remove();
-                    } else {
-                        requestAnimationFrame(animate);
-                    }
+                } else {
+                    requestAnimationFrame(animate);
                 }
-                animate();
             }
+            animate();
+        }
 
-            function createHeart(initial = false, initialY = -50) {
-                const heart = document.createElement("div");
-                heart.className = "heart";
-                heart.innerText = "♥";
-                const startX = Math.random() * window.innerWidth;
-                const zLayer = Math.random() * 200 - 100;
-                heart.style.left = startX + "px";
-                heart.style.top = initial ? Math.random() * window.innerHeight + "px" : "-50px";
-                heart.style.transform = `translateZ(${zLayer}px)`;
-
-                scene.appendChild(heart);
-
-                setTimeout(() => {
+        function createHeart() {
+            const heart = document.createElement("div");
+            heart.className = "heart";
+            heart.innerText = "♥";
+            const startX = Math.random() * window.innerWidth;
+            const zLayer = Math.random() * 200 - 100;
+            heart.style.left = startX + "px";
+            heart.style.top = "-50px";
+            heart.style.transform = `translateZ(${zLayer}px)`;
+            scene.appendChild(heart);
+            let posY = -50;
+            const speed = Math.random() * 1 + 1; // Tăng tốc độ tối thiểu
+            function animateHeart() {
+                posY += speed;
+                heart.style.top = posY + "px";
+                if (posY > document.documentElement.clientHeight + 50) {
                     heart.remove();
-                }, 25000);
-
-                let posY = initial ? parseFloat(heart.style.top) : -50;
-                const speed = Math.random() * 1 + 1;
-                function animateHeart() {
-                    posY += speed;
-                    heart.style.top = posY + "px";
-                    if (posY > window.innerHeight + 50) {
-                        heart.remove();
-                    } else {
-                        requestAnimationFrame(animateHeart);
-                    }
+                } else {
+                    requestAnimationFrame(animateHeart);
                 }
-                animateHeart();
             }
+            animateHeart();
+        }
 
-            function createRose(initial = false, initialY = -50) {
-                const rose = document.createElement("div");
-                rose.className = "rose";
-                rose.innerText = "♥";
-                const startX = Math.random() * window.innerWidth;
-                const zLayer = Math.random() * 200 - 100;
-                rose.style.left = startX + "px";
-                rose.style.top = initial ? Math.random() * window.innerHeight + "px" : "-50px";
-                rose.style.transform = `translateZ(${zLayer}px) rotate(${Math.random() * 360}deg)`;
-
-                scene.appendChild(rose);
-
-                setTimeout(() => {
+        function createRose() {
+            const rose = document.createElement("div");
+            rose.className = "rose";
+            rose.innerText = "♥";
+            const startX = Math.random() * window.innerWidth;
+            const zLayer = Math.random() * 200 - 100;
+            rose.style.left = startX + "px";
+            rose.style.top = "-50px";
+            rose.style.transform = `translateZ(${zLayer}px) rotate(${Math.random() * 360}deg)`;
+            scene.appendChild(rose);
+            let posY = -50;
+            const speed = Math.random() * 1 + 1; // Tăng tốc độ tối thiểu
+            function animateRose() {
+                posY += speed;
+                rose.style.top = posY + "px";
+                if (posY > document.documentElement.clientHeight + 50) {
                     rose.remove();
-                }, 25000);
-
-                let posY = initial ? parseFloat(rose.style.top) : -50;
-                const speed = Math.random() * 1 + 1;
-                function animateRose() {
-                    posY += speed;
-                    rose.style.top = posY + "px";
-                    if (posY > window.innerHeight + 50) {
-                        rose.remove();
-                    } else {
-                        requestAnimationFrame(animateRose);
-                    }
+                } else {
+                    requestAnimationFrame(animateRose);
                 }
-                animateRose();
             }
+            animateRose();
+        }
 
-            for (let i = 0; i < 10; i++) {
-                createFallingText(true);
-            }
-            for (let i = 0; i < 5; i++) {
-                createHeart(true);
-            }
-            for (let i = 0; i < 3; i++) {
-                createRose(true);
-            }
+        // Khởi tạo phần tử ban đầu
+        for (let i = 0; i < 10; i++) {
+            createFallingText();
+        }
+        for (let i = 0; i < 5; i++) {
+            createHeart();
+        }
+        for (let i = 0; i < 3; i++) {
+            createRose();
+        }
 
-            setInterval(createFallingText, 400);
-            setInterval(createHeart, 600);
-            setInterval(createRose, 800);
-        </script>
-    </body>
+        // Tạo phần tử định kỳ với giới hạn số lượng
+        setInterval(() => {
+            if (scene.childElementCount < 20) {
+                createFallingText();
+            }
+        }, 600); // Tăng từ 400ms lên 600ms
+        setInterval(() => {
+            if (scene.childElementCount < 20) {
+                createHeart();
+            }
+        }, 800); // Tăng từ 600ms lên 800ms
+        setInterval(() => {
+            if (scene.childElementCount < 20) {
+                createRose();
+            }
+        }, 1000); // Tăng từ 800ms lên 1000ms
+    </script>
+</body>
 </html>
